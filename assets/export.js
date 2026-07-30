@@ -23,6 +23,138 @@
       const TEMPLATE_IMAGE_EMU_H = 1999615;
       const TEMPLATE_IMAGE_RATIO = TEMPLATE_IMAGE_EMU_W / TEMPLATE_IMAGE_EMU_H;
 
+      // ============================================================================
+      // معالجة الفجوات المعروفة بين عرض docx-preview وWord الحقيقي (خاصة بمسار PDF فقط،
+      // ملف Word نفسه سليم 100% ولا يُمس هنا إطلاقاً):
+      //
+      // 1) الشعار (أعلى) والختم (أسفل) في القالب الأصلي هما صورتان "عائمة/مثبّتة"
+      //    (wp:anchor وليس wp:inline)، والختم إضافة لذلك مُدوَّر بزاوية وله تأثير فني
+      //    (Artistic Effect) خاص بـ Word فقط. هذا النوع من الصور غير مدعوم بشكل موثوق
+      //    في محرّكات عرض Word خارج Word نفسه (تحقّقنا أن حتى LibreOffice لا يعرض
+      //    الختم رغم عرضه للشعار). لذلك نرسم هاتين الصورتين يدوياً فوق كل صفحة PDF
+      //    بعد التقاطها، بموضع وحجم ثابتين (مقاسان فعلياً من القالب/من تقرير Word حقيقي)
+      //    بما أنهما عنصرا ترويسة ثابتان لا يتغيران أبداً بين التقارير.
+      //
+      // 2) قيم الإحداثيات (أرقام/حروف لاتينية) تقع داخل فقرات Word معرَّفة كـ RTL
+      //    (bidi)، فتُعاد خوارزمية Unicode BiDi في المتصفح ترتيب أجزائها بصرياً بشكل
+      //    خاطئ عند التقاطها كصورة. نعزل كل قيمة من هذه القيم داخل عنصر <bdi dir="ltr">
+      //    بعد العرض مباشرة كي تُقرأ بترتيبها الصحيح دائماً.
+      //
+      // 3) رمزا المربع (☑/☐) في القالب يعتمدان على خط Wingdings 2 غير المُضمَّن داخل
+      //    الملف (تحقّقنا من fontTable.xml)، وهو غير متوفر تقريباً في أي متصفح. نستبدل
+      //    هذين الرمزين بعد العرض برمزي يونيكود قياسيين (☑ / ☐) يعملان في أي نظام.
+      // ============================================================================
+
+      function loadImageAsset(url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("تعذّر تحميل الصورة: " + url));
+          img.src = url;
+        });
+      }
+
+      let cachedLogoImagePromise = null;
+      function getQiblaLogoImage() {
+        if (!cachedLogoImagePromise) {
+          cachedLogoImagePromise = loadImageAsset("assets/qibla-logo.png");
+        }
+        return cachedLogoImagePromise;
+      }
+
+      let cachedStampImagePromise = null;
+      function getQiblaStampImage() {
+        if (!cachedStampImagePromise) {
+          cachedStampImagePromise = loadImageAsset("assets/qibla-stamp.png");
+        }
+        return cachedStampImagePromise;
+      }
+
+      // مواضع/مقاسات ثابتة بوحدة نقطة (pt) على صفحة A4 (595.3 × 841.9pt)، مأخوذة من
+      // إحداثيات wp:anchor الفعلية في القالب (الشعار: مطابقة تامة مع قياس LibreOffice
+      // الحقيقي)، ومن قياس مباشر على تقرير Word صحيح فعلي (الختم، لأن لا LibreOffice
+      // ولا المتصفح يعرضانه أصلاً ليُقاس منه، فكانت صورة تقرير Word الفعلي هي المرجع).
+      const LOGO_OVERLAY_RECT_PT = { x: 244.8, y: 16.75, w: 129.8, h: 114.6 };
+      const STAMP_OVERLAY = {
+        centerX: 99.2,
+        centerY: 627.8,
+        unrotatedW: 108.6,
+        unrotatedH: 90.55,
+        rotationDeg: 31.77,
+      };
+
+      function drawRectOverlayOnPageCanvas(pageCanvas, img, rectPt, pageWidthPt) {
+        const pxPerPt = pageCanvas.width / pageWidthPt;
+        const ctx = pageCanvas.getContext("2d");
+        ctx.drawImage(
+          img,
+          rectPt.x * pxPerPt,
+          rectPt.y * pxPerPt,
+          rectPt.w * pxPerPt,
+          rectPt.h * pxPerPt,
+        );
+      }
+
+      function drawRotatedStampOnPageCanvas(pageCanvas, stampImg, pageWidthPt) {
+        const pxPerPt = pageCanvas.width / pageWidthPt;
+        const ctx = pageCanvas.getContext("2d");
+        const cx = STAMP_OVERLAY.centerX * pxPerPt;
+        const cy = STAMP_OVERLAY.centerY * pxPerPt;
+        const w = STAMP_OVERLAY.unrotatedW * pxPerPt;
+        const h = STAMP_OVERLAY.unrotatedH * pxPerPt;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((STAMP_OVERLAY.rotationDeg * Math.PI) / 180);
+        ctx.drawImage(stampImg, -w / 2, -h / 2, w, h);
+        ctx.restore();
+      }
+
+      // يستبدل رمزي Wingdings 2 الخاصين (غير المدعومين في المتصفح) برمزي يونيكود
+      // قياسيين يعملان في كل مكان، دون أي مساس بملف Word نفسه.
+      function replaceCheckboxGlyphsForPdf(container) {
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        let node;
+        while ((node = walker.nextNode())) nodes.push(node);
+        nodes.forEach((n) => {
+          if (n.nodeValue.indexOf("\uF052") !== -1 || n.nodeValue.indexOf("\uF0A3") !== -1) {
+            n.nodeValue = n.nodeValue.replace(/\uF052/g, "☑").replace(/\uF0A3/g, "☐");
+          }
+        });
+      }
+
+      // يعزل كل قيمة حقل رقمية/لاتينية (إحداثيات، زوايا، أرقام طلبات) داخل عنصر
+      // <bdi dir="ltr"> كي تُعرض بترتيبها الصحيح دوماً بصرف النظر عن اتجاه الفقرة
+      // المحيطة بها (RTL)، دون أي مساس بالنص العربي المجاور لها.
+      function isolateLtrFieldValuesForPdf(container, fields) {
+        const targets = [
+          fields.survey_coords,
+          fields.site_coords,
+          fields.bearing_dms,
+          fields.map_angle,
+          fields.mosque_request_no,
+          fields.company_request_no,
+        ]
+          .map((v) => (v || "").trim())
+          .filter(Boolean);
+        if (!targets.length) return;
+
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        let node;
+        while ((node = walker.nextNode())) nodes.push(node);
+
+        nodes.forEach((textNode) => {
+          const trimmed = textNode.nodeValue.trim();
+          if (!trimmed || targets.indexOf(trimmed) === -1) return;
+          const bdi = document.createElement("bdi");
+          bdi.setAttribute("dir", "ltr");
+          bdi.style.unicodeBidi = "isolate";
+          bdi.textContent = textNode.nodeValue;
+          textNode.parentNode.replaceChild(bdi, textNode);
+        });
+      }
+
       function cropCanvasToRatio(sourceCanvas, ratio) {
         const w = sourceCanvas.width;
         const h = sourceCanvas.height;
@@ -338,6 +470,18 @@
             renderChanges: false,
           });
 
+          // إصلاحا ما بعد العرض (قبل أي التقاط): استبدال رمزي المربع بيونيكود قياسي،
+          // وعزل قيم الإحداثيات/الأرقام اللاتينية كي لا تُعاد خوارزمية BiDi ترتيبها
+          const fieldsForPdfFixups = collectQiblaReportFields();
+          replaceCheckboxGlyphsForPdf(hiddenContainer);
+          isolateLtrFieldValuesForPdf(hiddenContainer, fieldsForPdfFixups);
+
+          // تحميل الشعار والختم (صور ثابتة عائمة يعجز docx-preview عن عرضها) مسبقاً
+          const [logoImg, stampImg] = await Promise.all([
+            getQiblaLogoImage(),
+            getQiblaStampImage(),
+          ]);
+
           // انتظار اكتمال رسم الصور والخطوط داخل المستند المعروض قبل الالتقاط
           await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
           const pendingImages = Array.from(hiddenContainer.querySelectorAll("img")).filter(
@@ -374,6 +518,14 @@
               backgroundColor: "#ffffff",
               scale: 2,
             });
+
+            // الشعار عنصر ترويسة يتكرر في كل صفحة (تماماً كرأس الصفحة في Word)
+            drawRectOverlayOnPageCanvas(pageCanvas, logoImg, LOGO_OVERLAY_RECT_PT, pageWidthPt);
+            // الختم يظهر مرة واحدة فقط قرب نهاية المستند (آخر صفحة)
+            if (i === pagesToRender.length - 1) {
+              drawRotatedStampOnPageCanvas(pageCanvas, stampImg, pageWidthPt);
+            }
+
             const imgData = pageCanvas.toDataURL("image/png");
             if (i > 0) pdf.addPage();
             pdf.addImage(imgData, "PNG", 0, 0, pageWidthPt, pageHeightPt);
