@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>قبلة سكاي — اتجاه القبلة من إحداثيات الأرض</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="29" fill="none" stroke="var(--gold)" stroke-width="2" />
+            <polygon points="32,8 38,32 32,56 26,32" fill="var(--gold)" />
+            <polygon points="8,32 32,26 56,32 32,38" fill="var(--sand)" opacity="0.7" />
+          </svg>
+          <span>قبلة سكاي</span>
+        </div>
+        <nav class="step-nav">
+          <a href="#panel-upload">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            رفع الكروكي
+          </a>
+          <a href="#panel-data">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            البيانات
+          </a>
+          <a href="#resultPanel">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            النتيجة
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="star-field"></div>
+      <div class="hero-inner">
+        <svg class="compass-mark" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="29" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="3,4" />
+          <polygon points="32,8 38,32 32,56 26,32" fill="var(--gold)" />
+          <polygon points="8,32 32,26 56,32 32,38" fill="var(--sand)" opacity="0.6" />
+        </svg>
+        <div class="eyebrow">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          <span>تحديد القبلة الهندسي الدقيق</span>
+        </div>
+        <h1>اتجاه القبلة من إحداثيات الأرض</h1>
+        <p>
+          أدخل Easting وNorthing من جدول الإحداثيات المطبوع على الرسم المساحي (الكروكي)، وسنحدد لك اتجاه القبلة بدقة فائقة على خريطة الأقمار الصناعية.
+        </p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <!-- Step 1 Panel -->
+      <div class="panel" id="panel-upload">
+        <div class="panel-head">
+          <span class="step-badge">١</span>
+          <h2>رفع الكروكي لقراءة الأرقام تلقائياً <span class="muted-inline">(اختياري)</span></h2>
+        </div>
+        <p class="sub">
+          قراءة نصية مجانية ومباشرة داخل المتصفح، بدون اشتراك أو مفتاح API. الدقة تعتمد على وضوح الصورة.
+        </p>
+
+        <label class="dropzone" id="dropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          <p>اسحب صورة الكروكي هنا أو انقر للاختيار</p>
+          <span>صيغ PNG أو JPG — تتم المعالجة آمنة ومحلية في متصفحك</span>
+          <input type="file" id="fileInput" accept="image/png,image/jpeg" />
+        </label>
+
+        <div class="preview" id="preview">
+          <img id="previewImg" alt="معاينة الكروكي" />
+          <div class="meta"><b id="fileName"></b></div>
+          <button class="clear" id="clearBtn">إزالة الصورة</button>
+        </div>
+
+        <div class="status" id="ocrStatus">
+          <div class="spinner"></div>
+          <span id="ocrStatusText">جاري قراءة النص واستخراج البيانات…</span>
+        </div>
+
+        <div id="ocrResultBox" class="hidden" style="margin-top: 16px;">
+          <p class="hint">
+            النص المستخرج من الصورة (يرجى مراجعته والتأكد من صحة الأرقام أدناه):
+          </p>
+          <textarea id="ocrText" class="textarea-mono"></textarea>
+        </div>
+      </div>
+
+      <!-- OCR Method Choice Modal -->
+      <div id="ocrChoiceModal" class="ocr-modal-overlay hidden">
+        <div class="ocr-modal-box">
+          <h3>كيف تحب تقرأ هذا الكروكي؟</h3>
+          <p class="hint" style="margin-bottom: 18px;">اختر طريقة القراءة، وهيبدأ العمل فوراً.</p>
+          <button id="chooseNormalBtn" class="ghost" style="width: 100%; padding: 14px; margin-bottom: 10px;">
+            القراءة العادية (مجانية، مباشرة)
+          </button>
+          <button id="chooseAiBtn" class="primary" style="margin-top: 0;">
+            القراءة بالذكاء الاصطناعي (Claude AI — دقة أعلى)
+          </button>
+          <div id="modalAiKeyWrap" class="hidden" style="margin-top: 16px;">
+            <label style="display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px;">مفتاح Anthropic API</label>
+            <input type="password" id="modalAnthropicKey" placeholder="sk-ant-..." autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(10,17,30,0.7); border: 1px solid var(--card-border); color: var(--paper); font-family: 'IBM Plex Mono', monospace;" />
+            <p class="hint" style="margin-top: 6px;">
+              يُستخدم من متصفحك فقط لهذه الجلسة، ولا يُحفظ أو يُرسل لأي مكان غير Anthropic. تُحتسب تكلفة بسيطة على حسابك لكل صورة.
+            </p>
+            <button id="confirmAiBtn" class="primary">متابعة</button>
+          </div>
+          <button id="cancelOcrModalBtn" class="ghost" style="width: 100%; margin-top: 14px; padding: 10px;">
+            إلغاء
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2 Panel -->
+      <div class="panel" id="panel-data">
+        <div class="panel-head">
+          <span class="step-badge">٢</span>
+          <h2>بيانات القطعة</h2>
+        </div>
+        <p class="sub">
+          انسخ الأرقام كما هي من جدول الإحداثيات على الكروكي (مثل نقاط الزوايا أو نقطة Centeroid)
+        </p>
+
+        <div class="field">
+          <label>نقاط زوايا القطعة (Easting, Northing) — سطر لكل نقطة من جدول الإحداثيات</label>
+          <textarea
+            id="pointsInput"
+            class="textarea-mono"
+            rows="6"
+            placeholder="552408.95, 2535491.37&#10;552355.34, 2535478.90&#10;552348.88, 2535503.07&#10;552352.46, 2535509.04&#10;552401.19, 2535520.37"
+          ></textarea>
+        </div>
+        <p class="hint">
+          💡 أدخل نقطة واحدة للحساب السريع، أو كافة نقاط الزوايا لرسم حدود القطعة الحقيقية وحساب المركز الفعلي بدقة متناهية.
+        </p>
+
+        <div class="grid2">
+          <div class="field">
+            <label>نظام الإسناد (Datum)</label>
+            <select id="datum">
+              <option value="wgs84utm">WGS84 UTM (قياسي دولي)</option>
+              <option value="psd93" selected>PSD93 / Clarke 1880 (المعتمد في عُمان)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>نطاق UTM (Zone)</label>
+            <select id="zone">
+              <option value="40" selected>40 (افتراضي — معظم مناطق عُمان)</option>
+              <option value="39">39 (المناطق الغربية فقط)</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint">
+          تقع سلطنة عُمان غالباً في النطاق 40، وبعض المناطق الغربية في النطاق 39.
+        </p>
+
+        <button class="primary" id="computeBtn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          احسب اتجاه القبلة واعرض الخريطة
+        </button>
+        <div class="error-box" id="errorBox"></div>
+      </div>
+
+      <!-- Result Panel -->
+      <div class="panel hidden reveal" id="resultPanel">
+        <div class="panel-head">
+          <span class="step-badge">٣</span>
+          <h2>النتيجة الحسابية</h2>
+        </div>
+        <p class="sub">تم تحديد اتجاه القبلة بنجاح بناءً على المرجعية المكانية للقطعة</p>
+
+        <div class="result-hero">
+          <svg class="dial" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="29" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="3,3" />
+            <polygon points="32,8 38,32 32,56 26,32" fill="var(--gold)" />
+            <polygon points="8,32 32,26 56,32 32,38" fill="var(--sand)" opacity="0.5" />
+          </svg>
+          <div class="copy">
+            <div class="eyebrow-sm">اتجاه القبلة (الشمال الحقيقي)</div>
+            <div class="angle" id="heroBearing">—</div>
+          </div>
+        </div>
+
+        <div class="doc-table">
+          <div class="doc-row">
+            <div class="doc-label">إحداثيات الرسم المساحي</div>
+            <div class="doc-value" id="surveyCoords" dir="ltr">—</div>
+          </div>
+          <div class="doc-row">
+            <div class="doc-label">إحداثيات الموقع</div>
+            <div class="doc-value" id="siteCoordsDMS" dir="ltr">—</div>
+          </div>
+          <div class="doc-row">
+            <div class="doc-label">زاوية القبلة من الشمال</div>
+            <div class="doc-value" id="bearingDMS" dir="ltr">—</div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat stat--primary">
+            <div class="label">اتجاه القبلة (الشمال الحقيقي)</div>
+            <div class="value" id="outBearing" dir="ltr">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">خط العرض</div>
+            <div class="value" id="outLat" dir="ltr">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">خط الطول</div>
+            <div class="value" id="outLon" dir="ltr">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">المسافة للكعبة</div>
+            <div class="value" id="outDist" dir="ltr">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">المساحة (محسوبة من الإحداثيات)</div>
+            <div class="value" id="outArea" dir="ltr">—</div>
+          </div>
+        </div>
+
+        <!-- Validation Results -->
+        <div id="validationPanel" class="hidden validation-panel">
+          <h3>⚠️ نتائج التحقق من الإحداثيات</h3>
+          <div id="validationWarnings" class="warnings"></div>
+          <div id="validationCorrections" style="margin-top: 12px;"></div>
+          <div class="area-line">
+            المساحة المحسوبة: <b id="computedArea">—</b> م² | 
+            المساحة في الكروكي: <b id="expectedArea">—</b> م²
+          </div>
+        </div>
+
+        <div id="validationSuccess" class="hidden validation-success">
+          ✅ الإحداثيات المدخلة متطابقة ومطابقة لمساحة الكروكي.
+        </div>
+
+        <div class="compass-dial-wrap">
+          <svg viewBox="0 0 240 240" class="compass-dial">
+            <circle cx="120" cy="120" r="100" fill="rgba(10, 17, 30, 0.8)" stroke="var(--card-border)" stroke-width="1.5" />
+            <circle cx="120" cy="120" r="86" fill="none" stroke="var(--gold)" stroke-width="1" stroke-dasharray="2,5" opacity="0.6" />
+            <g id="ticks"></g>
+            <text x="120" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold-light)">N</text>
+            <text x="120" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold-light)">S</text>
+            <text x="222" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold-light)">E</text>
+            <text x="18" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gold-light)">W</text>
+            
+            <g transform="translate(120,120) scale(0.65)" opacity="0.4">
+              <rect x="-32" y="-24" width="64" height="48" fill="#1B2C46" stroke="var(--gold)" stroke-width="1.5" />
+              <rect x="-32" y="-6" width="64" height="10" fill="var(--gold)" />
+              <rect x="-6" y="6" width="12" height="18" fill="#0F1B2D" stroke="var(--gold)" />
+            </g>
+            <g id="needle" transform="rotate(0,120,120)">
+              <line x1="120" y1="120" x2="120" y2="32" stroke="var(--red)" stroke-width="4" stroke-linecap="round" />
+              <polygon points="120,22 113,40 127,40" fill="var(--red)" />
+              <circle cx="120" cy="120" r="7" fill="var(--red)" stroke="#0a111e" stroke-width="2" />
+            </g>
+          </svg>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>الانحراف المغناطيسي (اختياري، بالدرجات — شرقي = +)</label>
+            <input type="text" id="declination" placeholder="مثال: 1.15" />
+          </div>
+          <div class="field">
+            <label>زاوية القبلة للبوصلة اليدوية</label>
+            <input type="text" id="compassBearing" readonly value="—" class="input-accent" />
+          </div>
+        </div>
+        <p class="hint" style="margin-top: -4px">
+          تذكر أن إبرة البوصلة التقليدية تشير للشمال المغناطيسي وليس الجغرافي. بمجرد إدخال قيمة الانحراف المغناطيسي لمنطقتك من (
+          <a href="https://www.magnetic-declination.com" target="_blank" style="color: var(--gold-light); text-decoration: underline;">magnetic-declination.com</a>
+          ) ستظهر لك الزاوية الدقيقة لتوجيه البوصلة اليدوية.
+        </p>
+
+        <div class="map-shell">
+          <div id="map"></div>
+          <div class="qibla-tag">القبلة: <b id="tagBearing">—</b></div>
+          <div class="layer-toggle">
+            <button id="satBtn" class="active">قمر صناعي</button>
+            <button id="mapBtn">خريطة</button>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top: 12px;">
+          <button class="ghost" id="fitBtn">تصغير لرؤية المسار المباشر للكعبة</button>
+          <button class="ghost" id="closeBtn">إعادة التكبير للموقع الحالي</button>
+        </div>
+        <div id="zoomNote" class="zoom-note"></div>
+
+        <div class="panel-head" style="margin-top: 28px;">
+          <h2 style="font-size: 20px;">بيانات الطلب</h2>
+        </div>
+        <p class="sub">
+          هذه البيانات تظهر في تقرير Word عند التحميل. جميع الحقول اختيارية ويمكن تعبئتها أو تعديلها لاحقاً.
+        </p>
+
+        <div class="grid2">
+          <div class="field">
+            <label>رقم الطلب بنظام المساجد</label>
+            <input type="text" id="mosqueRequestNo" placeholder="مثال: ص - 24 - 144" />
+          </div>
+          <div class="field">
+            <label>رقم الطلب بالشركة</label>
+            <input type="text" id="companyRequestNo" placeholder="مثال: ق س ا/ر12/1447خ114" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>وكيل المسجد \ نائبه وهاتفه</label>
+          <input type="text" id="agentInfo" placeholder="مثال: حميد بن علي بن سعيد الجابري - 96393938" />
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>المحافظة والولاية</label>
+            <input type="text" id="governorateInput" placeholder="مثال: شمال الشرقية - المضيبي" />
+          </div>
+          <div class="field">
+            <label>القرية (رقم القطعة)</label>
+            <input type="text" id="villagePlotInput" placeholder="مثال: التلول - قطعة 31" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>الزاوية بالخرائط</label>
+            <input type="text" id="mapAngleInput" placeholder="مثال: 90°" />
+          </div>
+          <div class="field">
+            <label>حالة الطلب</label>
+            <select id="requestStatusInput">
+              <option value="أولي" selected>أولي</option>
+              <option value="جاهز">جاهز</option>
+              <option value="مكتمل">مكتمل</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>ملاحظات</label>
+          <textarea id="notesInput" class="textarea-mono" rows="3" placeholder="مثال: إعادة بناء مسجد قائم"></textarea>
+        </div>
+
+        <div class="toolbar">
+          <button class="primary" id="downloadWordBtn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            تحميل تقرير Word
+          </button>
+          <button class="primary" id="downloadPdfBtn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            تحميل تقرير PDF
+          </button>
+        </div>
+        <div id="wordStatus" class="hint" style="display:none; margin-top:8px;"></div>
+
+        <p class="hint" style="margin-top: 14px">
+          💡 يمكنك سحب الدبوس على الخريطة لتعديل الموقع بدقة متناهية (مثلاً لمطابقته مع زاوية المبنى الفعلي) — وسيعاد حساب الزاوية والمسافة فوراً.
+        </p>
+
+        <p class="hint" style="color: var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;">
+          الخط الأحمر يرسم مسار اتجاه القبلة انطلاقاً من موقع أرضك. نعتمد على تحويل إحداثيات UTM بنظام WGS84 القياسي الدولي.
+        </p>
+      </div>
+
+      <footer>
+        <svg class="footer-mark" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="29" fill="none" stroke="var(--gold)" stroke-width="1.5" />
+          <polygon points="32,10 37,32 32,54 27,32" fill="var(--gold)" />
+        </svg>
+        <p>
+          قبلة سكاي — أداة هندسية مساعدة، ويُنصح دائماً بمراجعة وتأكيد اتجاه القبلة ميدانياً مع المتخصصين قبل البدء في أعمال البناء.
+        </p>
+      </footer>
+    </div>
+
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.69.0/build/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- docx-preview: يعرض ملف Word (نفس الملف المُنتَج بواسطة docxtemplater من القالب الأصلي)
+         داخل المتصفح كما هو تماماً، فيصبح هو أيضاً مصدر التصميم الذي يُبنى منه تقرير PDF،
+         بدل الاعتماد على تصميم HTML منفصل مكتوب يدوياً (وهو سبب الاختلاف السابق بين الملفين) -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.3/dist/docx-preview.min.js"></script>
+    <script src="assets/app.js" defer></script>
+    <script src="assets/export.js" defer></script>
+  </body>
+</html>
