@@ -1,63 +1,82 @@
-/* ===== أنماط خاصة بأداة حساب وقت العمل ===== */
+/* ==========================================================================
+   Work-time planner
+   Built on the tokens in style.css. Every duration, distance and clock time
+   is a readout: mono, tabular figures, gold.
+   ========================================================================== */
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-  margin-bottom: 26px;
-}
-
-.summary-card {
-  padding: 18px 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
-  background: rgba(223, 182, 104, 0.05);
-  text-align: center;
-}
-
-.summary-card .label {
-  display: block;
-  color: var(--muted);
-  font-size: 0.86rem;
-  margin-bottom: 6px;
-}
-
-.summary-card .value {
-  display: block;
-  color: var(--gold-light);
-  font-size: 1.42rem;
-  font-weight: 600;
-  font-family: "IBM Plex Mono", monospace;
-  line-height: 1.4;
-}
-
-/* جملة الملخص أعلى النتيجة */
+/* --------------------------------------------------------------------------
+   Summary
+   -------------------------------------------------------------------------- */
 .summary-headline {
-  margin: 0 0 20px;
-  padding: 14px 18px;
-  border-inline-start: 3px solid var(--gold);
+  margin: 0 0 var(--sp-6);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-inline-start: 2px solid var(--gold);
   border-radius: var(--radius-sm);
-  background: rgba(223, 182, 104, 0.07);
-  color: var(--paper);
-  font-size: 1rem;
+  background: var(--gold-wash);
+  color: var(--text-2);
+  font-size: var(--fs-body);
   line-height: 1.9;
+  text-wrap: pretty;
 }
 
 .summary-headline b {
   color: var(--gold-light);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+
+.summary-card {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.summary-card:hover {
+  border-color: var(--line-strong);
+}
+
+.summary-card .label {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--sp-1);
+}
+
+.summary-card .value {
+  display: block;
+  color: var(--gold-light);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .summary-card .note {
   display: block;
-  margin-top: 5px;
+  margin-top: var(--sp-1);
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-caption);
 }
 
-/* الخط الزمني لمحطات اليوم */
+/* --------------------------------------------------------------------------
+   Day timeline — stops and the legs between them
+   -------------------------------------------------------------------------- */
 .timeline {
-  margin: 0 0 26px;
+  margin: 0 0 var(--sp-6);
 }
 
 .timeline-list {
@@ -69,13 +88,13 @@
 .stop {
   position: relative;
   display: flex;
-  gap: 16px;
+  gap: var(--sp-4);
   align-items: flex-start;
 }
 
 .stop-rail {
   position: relative;
-  flex: 0 0 36px;
+  flex: 0 0 32px;
   display: flex;
   justify-content: center;
 }
@@ -83,176 +102,196 @@
 .stop-dot {
   position: relative;
   z-index: 2;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.95rem;
-  font-weight: 600;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  color: var(--text-2);
 }
 
+/* Start and end of the day are the fixed points — mark them with the accent */
 .stop.is-base .stop-dot {
-  border-color: var(--gold);
-  background: rgba(223, 182, 104, 0.12);
+  border-color: rgba(223, 182, 104, 0.4);
+  background: var(--gold-wash);
   color: var(--gold-light);
-  font-size: 1.05rem;
 }
 
 .stop-body {
   flex: 1;
   min-width: 0;
-  padding: 4px 0 2px;
+  padding: var(--sp-1) 0 var(--sp-1);
 }
 
 .stop-name {
-  margin: 0 0 4px;
-  font-size: 1.04rem;
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--paper);
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
+  line-height: 1.5;
 }
 
 .stop-tag {
-  padding: 2px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: rgba(223, 182, 104, 0.1);
-  color: var(--gold);
-  font-size: 0.76rem;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--fs-caption);
   font-weight: 500;
 }
 
 .stop-sub {
-  margin: 0 0 5px;
+  margin: 0 0 var(--sp-1);
   color: var(--muted);
-  font-size: 0.87rem;
+  font-size: var(--fs-sm);
 }
 
 .stop-meta {
   margin: 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
   line-height: 1.8;
 }
 
 .stop-meta .clock {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   color: var(--gold-light);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-/* ساق التنقل بين محطتين */
+/* The travel leg sits between two stops and carries the connecting rule */
 .leg {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: var(--sp-4);
   margin: 0;
-  padding: 9px 0 9px 0;
-  padding-inline-start: 8px;
   color: var(--muted);
-  font-size: 0.89rem;
+  font-size: var(--fs-sm);
 }
 
 .leg-icon {
-  flex: 0 0 20px;
-  text-align: center;
-  font-size: 0.95rem;
-  opacity: 0.85;
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  opacity: 0.7;
 }
 
 .leg-text {
-  padding-inline-start: 6px;
-  border-inline-start: 2px dashed var(--card-border);
-  padding-block: 5px;
-  padding-inline-start: 14px;
-  margin-inline-start: -2px;
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-3) 0;
+  font-variant-numeric: tabular-nums;
 }
 
+/* --------------------------------------------------------------------------
+   Map
+   -------------------------------------------------------------------------- */
 .worktime-map {
   height: 420px;
   width: 100%;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-2);
   overflow: hidden;
 }
 
-.hidden {
-  display: none;
-}
-
-/* ===== المساجد المحفوظة من أداة القبلة ===== */
+/* --------------------------------------------------------------------------
+   Saved mosques
+   -------------------------------------------------------------------------- */
 .saved-block {
-  margin-bottom: 20px;
-  padding: 18px;
-  border: 1px solid var(--card-border);
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: rgba(20, 32, 54, 0.45);
+  background: var(--surface-sunken);
 }
 
 .saved-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-4);
 }
 
 .saved-head h3 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
+  font-family: var(--font-body);
   font-weight: 600;
   color: var(--paper);
 }
 
 .saved-actions {
   display: flex;
-  gap: 14px;
+  gap: var(--sp-4);
 }
 
 .link-btn {
   background: none;
   border: none;
-  padding: 0;
+  padding: var(--sp-1) var(--sp-2);
+  margin: calc(var(--sp-1) * -1) calc(var(--sp-2) * -1);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
-  color: var(--gold);
+  font-size: var(--fs-sm);
+  color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 3px;
+  transition: color var(--dur-fast) var(--ease);
 }
 
-.link-btn.danger {
-  color: #ff9b9b;
+.link-btn:hover {
+  color: var(--paper);
+}
+
+.link-btn.danger:hover {
+  color: var(--red);
 }
 
 .saved-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 260px;
+  gap: var(--sp-2);
+  max-height: 300px;
   overflow-y: auto;
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-4);
 }
 
 .saved-item {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 13px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
-  background: rgba(10, 18, 34, 0.5);
-  transition: border-color 0.2s ease;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface-1);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.saved-item:hover {
+  border-color: var(--line-strong);
+}
+
+.saved-item:focus-within {
+  border-color: var(--gold);
 }
 
 .saved-pick {
@@ -260,79 +299,15 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--sp-3);
   cursor: pointer;
+  padding: var(--sp-1) 0;
+  min-height: 30px;
 }
 
-.icon-btn {
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid var(--card-border);
-  background: transparent;
-  color: var(--gold);
-  cursor: pointer;
-  font-size: 0.9rem;
-  line-height: 1;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.icon-btn:hover {
-  background: rgba(223, 182, 104, 0.14);
-  border-color: var(--gold);
-}
-
-.saved-sub.is-missing {
-  color: #e8b26a;
-  opacity: 0.85;
-}
-
-.saved-item.is-editing {
-  border-color: var(--gold);
-}
-
-.saved-edit {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.saved-edit input {
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--card-border);
-  background: rgba(10, 18, 34, 0.75);
-  color: var(--paper);
-  font: inherit;
-  font-size: 0.92rem;
-}
-
-.saved-edit input:focus {
-  outline: none;
-  border-color: var(--gold);
-}
-
-.edit-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.edit-actions .primary.subtle {
-  padding: 8px 16px;
-  font-size: 0.88rem;
-}
-
-.saved-item:hover {
-  border-color: var(--gold);
-}
-
-.saved-item input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
+.saved-pick input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
   accent-color: var(--gold);
   flex: 0 0 auto;
   cursor: pointer;
@@ -343,12 +318,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .saved-name {
   color: var(--paper);
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -356,61 +332,167 @@
 
 .saved-sub {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-caption);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.saved-sub.is-missing {
+  color: var(--gold);
+}
+
 .saved-coords {
   flex: 0 0 auto;
   color: var(--muted);
-  font-size: 0.82rem;
-  font-family: "IBM Plex Mono", monospace;
+  font-size: var(--fs-caption);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-.saved-empty {
-  margin-bottom: 20px;
-  padding: 16px 18px;
-  border: 1px dashed var(--card-border);
-  border-radius: var(--radius-sm);
+.icon-btn {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: transparent;
   color: var(--muted);
-  font-size: 0.92rem;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  line-height: 1;
+  transition: background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.icon-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.icon-btn.danger:hover {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: var(--red-wash);
+  color: var(--red);
+}
+
+/* Editing a saved mosque in place */
+.saved-item.is-editing {
+  border-color: var(--gold);
+  background: var(--surface-2);
+}
+
+.saved-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.saved-edit input {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--paper);
+  font: inherit;
+  font-size: var(--fs-body);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.saved-edit input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-glow);
+}
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+/* A quieter primary, for actions inside a card */
+button.primary.subtle {
+  width: auto;
+  margin-top: 0;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(223, 182, 104, 0.4);
+  box-shadow: none;
+}
+
+button.primary.subtle:hover {
+  background: var(--gold-wash);
+  border-color: var(--gold);
+  filter: none;
+  box-shadow: none;
+}
+
+.edit-actions .primary.subtle {
+  padding: var(--sp-1) var(--sp-4);
+  font-size: var(--fs-sm);
+}
+
+/* Empty state — an invitation, not a dead end */
+.saved-empty {
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: var(--fs-body);
   line-height: 1.8;
+  text-wrap: pretty;
 }
 
 .saved-empty a {
   color: var(--gold);
 }
 
-button.primary.subtle {
-  padding: 11px 18px;
-  font-size: 0.94rem;
-  background: transparent;
-  color: var(--gold);
-  border: 1px solid var(--gold);
-  box-shadow: none;
-}
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-button.primary.subtle:hover {
-  background: rgba(223, 182, 104, 0.12);
-}
+  .worktime-map {
+    height: 320px;
+  }
 
-@media (max-width: 560px) {
+  .saved-block {
+    padding: var(--sp-4);
+  }
+
   .saved-item {
     flex-wrap: wrap;
+    row-gap: var(--sp-2);
   }
+
+  .saved-pick {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
   .saved-coords {
-    width: 100%;
+    order: 2;
     padding-inline-start: 28px;
   }
-}
 
-.icon-btn.danger {
-  color: #ff9b9b;
-}
+  .icon-btn {
+    order: 3;
+  }
 
-.icon-btn.danger:hover {
-  background: rgba(244, 91, 91, 0.15);
-  border-color: rgba(244, 91, 91, 0.6);
+  .icon-btn + .icon-btn {
+    margin-inline-start: calc(var(--sp-2) * -1 + var(--sp-2));
+  }
 }
