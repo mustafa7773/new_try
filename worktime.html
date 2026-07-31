@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>أداة حساب وقت العمل — Sky Innovations Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/style.css" />
+    <link rel="stylesheet" href="assets/hub.css" />
+    <link rel="stylesheet" href="assets/worktime.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="24" fill="none" stroke="var(--gold)" stroke-width="2.5" />
+            <path d="M32 17v16l11 6" fill="none" stroke="var(--sand)" stroke-width="3" stroke-linecap="round" />
+          </svg>
+          <span>حساب وقت العمل</span>
+        </div>
+        <a class="back-to-tools" href="index.html">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m0 0l-7-7m7 7l-7 7"/></svg>
+          كل الأدوات
+        </a>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="star-field"></div>
+      <div class="hero-inner">
+        <div class="eyebrow">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          <span>تخطيط يوم العمل الميداني</span>
+        </div>
+        <h1>حساب وقت العمل</h1>
+        <p>
+          أدخل إحداثيات المساجد، لتحصل على أقصر مسار يمر بها جميعاً انطلاقاً من
+          الخوض السابعة وعودةً إليها، مع زمن التنقل ووقت العمل في كل موقع.
+        </p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <!-- نقطة الانطلاق -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="step-badge">١</span>
+          <h2>نقطة الانطلاق والعودة</h2>
+        </div>
+        <p class="sub">
+          الافتراضي هو الخوض السابعة. عدّل الإحداثيات إن أردت انطلاقاً من موقع آخر.
+        </p>
+
+        <div class="grid2">
+          <div class="field">
+            <label>خط العرض (Latitude)</label>
+            <input type="text" id="originLat" class="textarea-mono" value="23.5915" />
+          </div>
+          <div class="field">
+            <label>خط الطول (Longitude)</label>
+            <input type="text" id="originLon" class="textarea-mono" value="58.1738" />
+          </div>
+        </div>
+        <p class="hint">
+          💡 بعد أول حساب يمكنك سحب دبوس الانطلاق على الخريطة لضبط الموقع بدقة.
+        </p>
+      </div>
+
+      <!-- مواقع المساجد -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="step-badge">٢</span>
+          <h2>مواقع المساجد</h2>
+        </div>
+        <p class="sub">
+          سطر لكل مسجد بصيغة: <b>الاسم، Easting، Northing</b> — أو <b>Easting، Northing</b> فقط.
+        </p>
+
+        <div class="field">
+          <label>قائمة المساجد</label>
+          <textarea
+            id="mosquesInput"
+            class="textarea-mono"
+            rows="7"
+            placeholder="مسجد النور, 554636.62, 2532743.15&#10;مسجد الرحمة, 551248.12, 2633719.21&#10;552408.95, 2535491.37"
+          ></textarea>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>نظام الإسناد (Datum)</label>
+            <select id="datum">
+              <option value="wgs84utm">WGS84 UTM (قياسي دولي)</option>
+              <option value="psd93" selected>PSD93 / Clarke 1880 (المعتمد في عُمان)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>نطاق UTM (Zone)</label>
+            <select id="zone">
+              <option value="40" selected>40 (افتراضي — معظم مناطق عُمان)</option>
+              <option value="39">39 (المناطق الغربية فقط)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>مدة العمل داخل كل مسجد (دقيقة)</label>
+            <input type="number" id="stopMinutes" class="textarea-mono" value="60" min="0" step="5" />
+          </div>
+          <div class="field">
+            <label>وقت بداية الدوام</label>
+            <input type="time" id="startTime" class="textarea-mono" value="08:00" />
+          </div>
+        </div>
+
+        <button class="primary" id="computeBtn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          احسب أقصر مسار ووقت العمل
+        </button>
+        <div class="error-box" id="errorBox"></div>
+      </div>
+
+      <!-- النتيجة -->
+      <div class="panel hidden" id="resultPanel">
+        <div class="panel-head">
+          <span class="step-badge">٣</span>
+          <h2>خطة اليوم</h2>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+
+        <div class="timeline" id="timeline"></div>
+
+        <div id="map" class="worktime-map"></div>
+
+        <p class="hint" id="routeSourceNote" style="margin-top: 14px"></p>
+
+        <div class="toolbar">
+          <button class="primary" id="openMapsBtn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            فتح المسار في خرائط Google
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="assets/geo.js"></script>
+    <script src="assets/worktime.js" defer></script>
+  </body>
+</html>
