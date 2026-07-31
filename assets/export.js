@@ -45,52 +45,74 @@
       //    هذين الرمزين بعد العرض برمزي يونيكود قياسيين (☑ / ☐) يعملان في أي نظام.
       // ============================================================================
 
-      // مواضع/مقاسات معبَّر عنها كنسب مئوية من أبعاد الصفحة نفسها (وليس بوحدات ثابتة)،
-      // محسوبة من إحداثيات wp:anchor الفعلية في القالب على صفحة A4 (595.3 × 841.9pt).
-      // استخدام النسب يجعلها صحيحة مهما كان المقاس الفعلي الذي يعرض به docx-preview
-      // الصفحة في المتصفح (وهو ما يختلف من جهاز لآخر).
-      const LOGO_PCT = { left: 41.12, top: 1.99, width: 21.8, height: 13.61 };
-      const STAMP_PCT = {
-        centerLeft: 16.66,
-        centerTop: 74.57,
-        width: 18.24,
-        height: 10.76,
+      // ---- هندسة المواضع منقولة حرفياً من wp:anchor داخل القالب (بوحدة نقطة pt) ----
+      // مشتقة من: هامش أيسر 1134 twips = 56.70pt، مسافة الترويسة 709 twips = 35.45pt.
+      const A4_WIDTH_PT = 595.3;
+
+      // الشعار (header1.xml): يُوضع بالنسبة لحافة الصفحة، ويتكرر في كل صفحة.
+      const LOGO_PT = { left: 244.8, top: 16.8, width: 129.8, height: 114.6 };
+
+      // الختم (document.xml): في Word مربوط بالفقرة التي تحتوي "تاريخ الاصدار"
+      // (positionV relativeFrom="paragraph")، ولذلك نربطه بنفس الفقرة في DOM بدل
+      // ربطه بموضع ثابت من الصفحة — فيبقى صحيحاً مهما تغيّر توزيع الصفحات.
+      const STAMP_PT = {
+        left: 242.35,
+        topBelowParagraph: 22.58,
+        width: 108.6,
+        height: 90.55,
         rotationDeg: 31.77,
       };
+      const STAMP_ANCHOR_TEXT = "تاريخ الاصدار";
 
       // يحقن الشعار والختم كعناصر <img> حقيقية داخل صفحة المستند المعروضة، قبل التقاطها
-      // بواسطة html2canvas — فيلتقطهما مثل أي صورة عادية في الصفحة، دون الحاجة لأي
-      // معالجة لاحقة على الـ canvas.
-      function injectLetterheadImagesIntoPage(pageEl, logoSrc, stampSrc, isLastPage) {
+      // بواسطة html2canvas — فيلتقطهما مثل أي صورة عادية في الصفحة.
+      function injectLetterheadImagesIntoPage(pageEl, logoSrc, stampSrc) {
         const cs = window.getComputedStyle(pageEl);
         if (cs.position === "static") {
           pageEl.style.position = "relative";
         }
 
+        // مقياس التحويل: عرض الصفحة المعروضة مقابل عرض A4 الحقيقي
+        const pageRect = pageEl.getBoundingClientRect();
+        const pxPerPt = pageRect.width / A4_WIDTH_PT;
+
         const logo = document.createElement("img");
         logo.src = logoSrc;
         logo.setAttribute("data-qibla-overlay", "logo");
         logo.style.position = "absolute";
-        logo.style.left = LOGO_PCT.left + "%";
-        logo.style.top = LOGO_PCT.top + "%";
-        logo.style.width = LOGO_PCT.width + "%";
-        logo.style.height = LOGO_PCT.height + "%";
+        logo.style.left = LOGO_PT.left * pxPerPt + "px";
+        logo.style.top = LOGO_PT.top * pxPerPt + "px";
+        logo.style.width = LOGO_PT.width * pxPerPt + "px";
+        logo.style.height = LOGO_PT.height * pxPerPt + "px";
         logo.style.zIndex = "50";
         logo.style.pointerEvents = "none";
         pageEl.appendChild(logo);
 
-        if (!isLastPage) return;
+        // البحث عن فقرة الإرساء الخاصة بالختم داخل هذه الصفحة تحديداً
+        let anchorEl = null;
+        const candidates = pageEl.querySelectorAll("p, div, span, td");
+        for (let i = 0; i < candidates.length; i++) {
+          const el = candidates[i];
+          if (el.textContent && el.textContent.indexOf(STAMP_ANCHOR_TEXT) !== -1) {
+            anchorEl = el; // نُبقي الأعمق (الأخير) لأنه الأدق
+          }
+        }
+        if (!anchorEl) return;
+
+        const anchorRect = anchorEl.getBoundingClientRect();
+        const anchorTopWithinPage = anchorRect.top - pageRect.top;
 
         const stamp = document.createElement("img");
         stamp.src = stampSrc;
         stamp.setAttribute("data-qibla-overlay", "stamp");
         stamp.style.position = "absolute";
-        stamp.style.left = STAMP_PCT.centerLeft + "%";
-        stamp.style.top = STAMP_PCT.centerTop + "%";
-        stamp.style.width = STAMP_PCT.width + "%";
-        stamp.style.height = STAMP_PCT.height + "%";
-        stamp.style.transform =
-          "translate(-50%, -50%) rotate(" + STAMP_PCT.rotationDeg + "deg)";
+        stamp.style.left = STAMP_PT.left * pxPerPt + "px";
+        stamp.style.top =
+          anchorTopWithinPage + STAMP_PT.topBelowParagraph * pxPerPt + "px";
+        stamp.style.width = STAMP_PT.width * pxPerPt + "px";
+        stamp.style.height = STAMP_PT.height * pxPerPt + "px";
+        stamp.style.transform = "rotate(" + STAMP_PT.rotationDeg + "deg)";
+        stamp.style.transformOrigin = "center center";
         stamp.style.zIndex = "50";
         stamp.style.pointerEvents = "none";
         pageEl.appendChild(stamp);
@@ -471,14 +493,12 @@
             : [];
           const pagesToRender = pageEls.length ? pageEls : [hiddenContainer];
 
-          // حقن الشعار (في كل صفحة) والختم (في الصفحة الأخيرة فقط) كعناصر صور حقيقية
-          // داخل الصفحات قبل التقاطها، ليلتقطها html2canvas تلقائياً
-          pagesToRender.forEach((pageEl, idx) => {
+          // حقن الشعار (في كل صفحة) والختم (في الصفحة التي تحتوي فقرة إرسائه)
+          pagesToRender.forEach((pageEl) => {
             injectLetterheadImagesIntoPage(
               pageEl,
               "assets/qibla-logo.png",
               "assets/qibla-stamp.png",
-              idx === pagesToRender.length - 1,
             );
           });
 
@@ -504,6 +524,8 @@
           const pageWidthPt = pdf.internal.pageSize.getWidth();
           const pageHeightPt = pdf.internal.pageSize.getHeight();
 
+          let isFirstPdfPage = true;
+
           for (let i = 0; i < pagesToRender.length; i++) {
             const pageCanvas = await html2canvas(pagesToRender[i], {
               useCORS: true,
@@ -511,9 +533,67 @@
               scale: 2,
             });
 
-            const imgData = pageCanvas.toDataURL("image/png");
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, "PNG", 0, 0, pageWidthPt, pageHeightPt);
+            // عرض الصفحة يُطابَق مع عرض A4، والارتفاع يُحسب بنفس النسبة حفاظاً على
+            // التناسب الحقيقي — بلا أي سحب أو ضغط يشوّه الجداول والخطوط والصور.
+            const pxPerPt = pageCanvas.width / pageWidthPt;
+            const fullHeightPt = pageCanvas.height / pxPerPt;
+
+            if (fullHeightPt <= pageHeightPt + 1) {
+              // الصفحة تسع داخل A4 كما هي
+              if (!isFirstPdfPage) pdf.addPage();
+              isFirstPdfPage = false;
+              pdf.addImage(
+                pageCanvas.toDataURL("image/png"),
+                "PNG",
+                0,
+                0,
+                pageWidthPt,
+                fullHeightPt,
+              );
+            } else {
+              // الصفحة أطول من A4 (لاختلاف مقاييس الخطوط بين المتصفح وWord):
+              // تُقسَّم رأسياً إلى صفحات A4 متتابعة بدل حشرها في صفحة واحدة مشوّهة.
+              const sliceHeightPx = Math.floor(pageHeightPt * pxPerPt);
+              let offsetPx = 0;
+
+              while (offsetPx < pageCanvas.height) {
+                const currentSlicePx = Math.min(
+                  sliceHeightPx,
+                  pageCanvas.height - offsetPx,
+                );
+
+                const sliceCanvas = document.createElement("canvas");
+                sliceCanvas.width = pageCanvas.width;
+                sliceCanvas.height = currentSlicePx;
+                const sliceCtx = sliceCanvas.getContext("2d");
+                sliceCtx.fillStyle = "#ffffff";
+                sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                sliceCtx.drawImage(
+                  pageCanvas,
+                  0,
+                  offsetPx,
+                  pageCanvas.width,
+                  currentSlicePx,
+                  0,
+                  0,
+                  pageCanvas.width,
+                  currentSlicePx,
+                );
+
+                if (!isFirstPdfPage) pdf.addPage();
+                isFirstPdfPage = false;
+                pdf.addImage(
+                  sliceCanvas.toDataURL("image/png"),
+                  "PNG",
+                  0,
+                  0,
+                  pageWidthPt,
+                  currentSlicePx / pxPerPt,
+                );
+
+                offsetPx += currentSlicePx;
+              }
+            }
           }
 
           pdf.save("طلب_تحديد_اتجاه_القبلة_" + qiblaReportFileStamp() + ".pdf");
