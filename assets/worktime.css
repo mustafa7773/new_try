@@ -129,3 +129,173 @@
 .hidden {
   display: none;
 }
+
+/* سجل قراءة الكروكيات */
+.kroki-log {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kroki-row {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  background: rgba(20, 32, 54, 0.5);
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.kroki-row b {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.kroki-row.is-pending {
+  border-color: var(--card-border);
+  opacity: 0.75;
+}
+
+.kroki-row.is-ok {
+  border-color: rgba(46, 204, 113, 0.45);
+  color: var(--paper);
+}
+
+.kroki-row.is-fail {
+  border-color: rgba(244, 91, 91, 0.45);
+  color: #ffb4b4;
+}
+
+/* ===== المساجد المحفوظة من أداة القبلة ===== */
+.saved-block {
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: rgba(20, 32, 54, 0.45);
+}
+
+.saved-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.saved-head h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+.saved-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-btn.danger {
+  color: #ff9b9b;
+}
+
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.saved-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 13px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 18, 34, 0.5);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.saved-item:hover {
+  border-color: var(--gold);
+}
+
+.saved-item input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold);
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.saved-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--paper);
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-coords {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.saved-empty {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px dashed var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.8;
+}
+
+.saved-empty a {
+  color: var(--gold);
+}
+
+button.primary.subtle {
+  padding: 11px 18px;
+  font-size: 0.94rem;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  box-shadow: none;
+}
+
+button.primary.subtle:hover {
+  background: rgba(223, 182, 104, 0.12);
+}
+
+@media (max-width: 560px) {
+  .saved-item {
+    flex-wrap: wrap;
+  }
+  .saved-coords {
+    width: 100%;
+    padding-inline-start: 28px;
+  }
+}

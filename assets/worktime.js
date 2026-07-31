@@ -84,33 +84,32 @@
     const mosques = [];
 
     lines.forEach((line, idx) => {
-      // نقبل الفاصلة العربية والإنجليزية والمسافات كفواصل
-      const parts = line
-        .split(/[,،;\t]+|\s{2,}/)
-        .map((p) => p.trim())
-        .filter(Boolean);
+      // الحقول مفصولة بفاصلة (عربية أو إنجليزية) أو فاصلة منقوطة أو Tab.
+      // آخر حقلين هما Easting ثم Northing، وما قبلهما هو الاسم — بهذا الترتيب
+      // يبقى الاسم سليماً حتى لو احتوى أرقاماً مثل "ص-24-103".
+      let parts = line.split(/[,،;\t]+/).map((p) => p.trim()).filter(Boolean);
 
-      // نبحث عن آخر رقمين صالحين في السطر (Easting ثم Northing)
-      const numeric = [];
-      const nameParts = [];
-      parts.forEach((p) => {
-        const cleaned = p.replace(/[^\d.\-]/g, "");
-        if (cleaned && !isNaN(parseFloat(cleaned)) && /\d/.test(p)) {
-          numeric.push(parseFloat(cleaned));
-        } else {
-          nameParts.push(p);
-        }
-      });
+      // سطر بلا فواصل: نقبل الفصل بالمسافات (إحداثيتان فقط)
+      if (parts.length < 2) {
+        parts = line.split(/\s+/).map((p) => p.trim()).filter(Boolean);
+      }
 
-      if (numeric.length < 2) {
+      if (parts.length < 2) {
         throw new Error(
           "السطر رقم " + (idx + 1) + " لا يحتوي على إحداثيتين صالحتين (Easting و Northing).",
         );
       }
 
-      const easting = numeric[numeric.length - 2];
-      const northing = numeric[numeric.length - 1];
-      const name = nameParts.join(" ").trim() || "مسجد " + (idx + 1);
+      const northing = parseFloat(parts[parts.length - 1].replace(/[^\d.\-]/g, ""));
+      const easting = parseFloat(parts[parts.length - 2].replace(/[^\d.\-]/g, ""));
+
+      if (!isFinite(easting) || !isFinite(northing)) {
+        throw new Error(
+          "السطر رقم " + (idx + 1) + " لا يحتوي على إحداثيتين صالحتين (Easting و Northing).",
+        );
+      }
+
+      const name = parts.slice(0, -2).join(", ").trim() || "مسجد " + (idx + 1);
 
       const wgs = convertToWGS84(easting, northing, zone, datum);
       if (!isFinite(wgs.lat) || !isFinite(wgs.lon)) {
@@ -400,6 +399,153 @@
     );
   }
 
+  // ---------- المساجد المحفوظة من أداة القبلة ----------
+
+  function renderSavedMosques() {
+    const store = window.MosqueStore;
+    const block = el("savedBlock");
+    const empty = el("savedEmpty");
+    const list = el("savedList");
+
+    const saved = store ? store.loadAll() : [];
+
+    if (!saved.length) {
+      block.classList.add("hidden");
+      empty.classList.remove("hidden");
+      return;
+    }
+
+    block.classList.remove("hidden");
+    empty.classList.add("hidden");
+
+    list.innerHTML = saved
+      .map((m) => {
+        const when = m.savedAt ? new Date(m.savedAt).toLocaleDateString("ar-OM") : "";
+        return (
+          '<label class="saved-item"><input type="checkbox" value="' +
+          m.id +
+          '" /><span class="saved-name">' +
+          escapeHtml(m.name) +
+          '</span><span class="saved-coords">' +
+          m.easting.toFixed(2) +
+          " · " +
+          m.northing.toFixed(2) +
+          (when ? " · " + when : "") +
+          "</span></label>"
+        );
+      })
+      .join("");
+  }
+
+  function addSelectedSaved() {
+    const store = window.MosqueStore;
+    if (!store) return;
+
+    const chosenIds = Array.from(
+      el("savedList").querySelectorAll('input[type="checkbox"]:checked'),
+    ).map((cb) => cb.value);
+
+    if (!chosenIds.length) {
+      showError("حدّد مسجداً واحداً على الأقل من القائمة المحفوظة.");
+      return;
+    }
+
+    clearError();
+    const saved = store.loadAll();
+    const ta = el("mosquesInput");
+    const existing = ta.value.trim();
+    const lines = [];
+
+    chosenIds.forEach((id) => {
+      const m = saved.find((x) => x.id === id);
+      if (!m) return;
+      // نتجنّب التكرار إن كان المسجد مضافاً بالفعل
+      if (existing.indexOf(m.easting.toFixed(2)) !== -1) return;
+      lines.push(m.name + ", " + m.easting.toFixed(2) + ", " + m.northing.toFixed(2));
+
+      // مزامنة نظام الإسناد والنطاق مع أول مسجد محفوظ يحملهما
+      if (m.zone && m.zone >= 1 && m.zone <= 60) el("zone").value = String(m.zone);
+      if (m.datum === "psd93" || m.datum === "wgs84utm") el("datum").value = m.datum;
+    });
+
+    if (!lines.length) return;
+
+    ta.value = existing ? existing + "\n" + lines.join("\n") : lines.join("\n");
+
+    el("savedList")
+      .querySelectorAll('input[type="checkbox"]:checked')
+      .forEach((cb) => (cb.checked = false));
+  }
+
+  // ---------- رفع الكروكيات واستخراج المواقع ----------
+
+  function logKroki(html, tone) {
+    const box = el("krokiLog");
+    box.classList.remove("hidden");
+    const row = document.createElement("div");
+    row.className = "kroki-row" + (tone ? " is-" + tone : "");
+    row.innerHTML = html;
+    box.appendChild(row);
+  }
+
+  function appendMosqueLine(name, easting, northing) {
+    const ta = el("mosquesInput");
+    const line = name + ", " + easting.toFixed(2) + ", " + northing.toFixed(2);
+    ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
+  }
+
+  async function handleKrokiFiles(fileList) {
+    const files = Array.from(fileList).filter((f) => f && f.type.indexOf("image/") === 0);
+    if (!files.length) return;
+
+    const method = el("ocrMethod").value;
+    const apiKey = el("anthropicKey").value.trim();
+
+    if (method === "ai" && !apiKey) {
+      showError("أدخل مفتاح Anthropic API، أو اختر القراءة العادية.");
+      return;
+    }
+
+    clearError();
+    el("krokiLog").classList.remove("hidden");
+
+    for (const file of files) {
+      const pending = document.createElement("div");
+      pending.className = "kroki-row is-pending";
+      pending.textContent = "جاري قراءة " + file.name + "…";
+      el("krokiLog").appendChild(pending);
+
+      try {
+        const result = await window.KrokiReader.readKroki(file, { method, apiKey });
+
+        // مزامنة نطاق UTM ونظام الإسناد إن تعرّف عليهما القارئ
+        if (result.zone && result.zone >= 1 && result.zone <= 60) {
+          el("zone").value = String(result.zone);
+        }
+        if (result.datum === "psd93" || result.datum === "wgs84utm") {
+          el("datum").value = result.datum;
+        }
+
+        appendMosqueLine(result.name, result.easting, result.northing);
+
+        const how =
+          result.source === "centroid"
+            ? "مركز القطعة المذكور بالكروكي"
+            : "مركز " + result.pointCount + " نقطة";
+        pending.className = "kroki-row is-ok";
+        pending.innerHTML =
+          "✓ <b>" + escapeHtml(result.name) + "</b> — " + how;
+      } catch (err) {
+        pending.className = "kroki-row is-fail";
+        pending.innerHTML =
+          "✕ <b>" +
+          escapeHtml(file.name) +
+          "</b> — " +
+          escapeHtml(err && err.message ? err.message : "تعذّرت القراءة");
+      }
+    }
+  }
+
   // ---------- التشغيل ----------
 
   async function compute() {
@@ -465,6 +611,55 @@
   }
 
   el("computeBtn").addEventListener("click", compute);
+
+  // ----- المساجد المحفوظة -----
+  renderSavedMosques();
+
+  el("addSelectedBtn").addEventListener("click", addSelectedSaved);
+
+  el("selectAllSaved").addEventListener("click", function () {
+    const boxes = el("savedList").querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(boxes).every((b) => b.checked);
+    boxes.forEach((b) => (b.checked = !allChecked));
+  });
+
+  el("clearSaved").addEventListener("click", function () {
+    if (!window.MosqueStore) return;
+    if (!confirm("سيتم مسح كل المساجد المحفوظة. هل تريد المتابعة؟")) return;
+    window.MosqueStore.clearAll();
+    renderSavedMosques();
+  });
+
+  // إظهار حقل المفتاح فقط عند اختيار القراءة عالية الدقة
+  el("ocrMethod").addEventListener("change", function () {
+    el("aiKeyWrap").classList.toggle("hidden", this.value !== "ai");
+  });
+
+  el("krokiInput").addEventListener("change", function (e) {
+    if (e.target.files && e.target.files.length) {
+      handleKrokiFiles(e.target.files);
+    }
+    e.target.value = "";
+  });
+
+  const dropzone = el("krokiDropzone");
+  ["dragover", "dragenter"].forEach((ev) =>
+    dropzone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dropzone.classList.add("drag");
+    }),
+  );
+  ["dragleave", "drop"].forEach((ev) =>
+    dropzone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("drag");
+    }),
+  );
+  dropzone.addEventListener("drop", (e) => {
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      handleKrokiFiles(e.dataTransfer.files);
+    }
+  });
 
   el("openMapsBtn").addEventListener("click", function () {
     if (!lastRoute) return;
