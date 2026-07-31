@@ -80,7 +80,7 @@
           <h2>مواقع المساجد</h2>
         </div>
         <p class="sub">
-          اختر من المساجد المحفوظة، أو ارفع كروكي، أو أدخل الإحداثيات يدوياً.
+          اختر من المساجد المحفوظة، أو أدخل الإحداثيات يدوياً.
         </p>
 
         <!-- المساجد المحفوظة من أداة القبلة -->
@@ -105,33 +105,9 @@
           سيظهر هنا تلقائياً.
         </div>
 
-        <label class="dropzone" id="krokiDropzone">
-          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          <p>اسحب كروكيات المساجد هنا أو انقر للاختيار</p>
-          <span>يمكن اختيار عدة كروكيات معاً — كل كروكي يُضاف كمسجد</span>
-          <input type="file" id="krokiInput" accept="image/png,image/jpeg" multiple />
-        </label>
+        <div class="field">
 
-        <div class="grid2" style="margin-top: 16px">
-          <div class="field">
-            <label>طريقة قراءة الكروكي</label>
-            <select id="ocrMethod">
-              <option value="normal" selected>قراءة عادية (مجانية، بدون إنترنت)</option>
-              <option value="ai">دقة عالية بواسطة Claude (تحتاج مفتاح)</option>
-            </select>
-          </div>
-          <div class="field hidden" id="aiKeyWrap">
-            <label>مفتاح Anthropic API</label>
-            <input type="password" id="anthropicKey" class="textarea-mono" placeholder="sk-ant-..." />
-          </div>
-        </div>
-
-        <div class="kroki-log hidden" id="krokiLog"></div>
-
-        <div class="field" style="margin-top: 18px">
-          <label>الإحداثيات المستخرجة (يمكنك تعديلها)</label>
+          <label>إحداثيات المساجد</label>
           <textarea
             id="mosquesInput"
             class="textarea-mono"
@@ -204,10 +180,8 @@
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
     <script src="assets/geo.js"></script>
     <script src="assets/mosque-store.js" defer></script>
-    <script src="assets/kroki.js" defer></script>
     <script src="assets/worktime.js" defer></script>
   </body>
 </html>
