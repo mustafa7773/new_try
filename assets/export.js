@@ -45,79 +45,55 @@
       //    هذين الرمزين بعد العرض برمزي يونيكود قياسيين (☑ / ☐) يعملان في أي نظام.
       // ============================================================================
 
-      function loadImageAsset(url) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = () => {
-            console.error("[qibla-pdf] تعذّر تحميل صورة الترويسة الثابتة:", url);
-            reject(new Error("تعذّر تحميل الصورة: " + url));
-          };
-          img.src = url;
-        });
-      }
-
-      // ملاحظة: لا نُخزِّن (نُخبِّئ) نتيجة فاشلة بشكل دائم — إن فشل التحميل مرة نعيد
-      // المحاولة في الطلب التالي بدل تكرار نفس الفشل إلى الأبد داخل نفس الجلسة
-      let cachedLogoImagePromise = null;
-      function getQiblaLogoImage() {
-        if (!cachedLogoImagePromise) {
-          cachedLogoImagePromise = loadImageAsset("assets/qibla-logo.png").catch((err) => {
-            cachedLogoImagePromise = null;
-            throw err;
-          });
-        }
-        return cachedLogoImagePromise;
-      }
-
-      let cachedStampImagePromise = null;
-      function getQiblaStampImage() {
-        if (!cachedStampImagePromise) {
-          cachedStampImagePromise = loadImageAsset("assets/qibla-stamp.png").catch((err) => {
-            cachedStampImagePromise = null;
-            throw err;
-          });
-        }
-        return cachedStampImagePromise;
-      }
-
-      // مواضع/مقاسات ثابتة بوحدة نقطة (pt) على صفحة A4 (595.3 × 841.9pt)، مأخوذة من
-      // إحداثيات wp:anchor الفعلية في القالب (الشعار: مطابقة تامة مع قياس LibreOffice
-      // الحقيقي)، ومن قياس مباشر على تقرير Word صحيح فعلي (الختم، لأن لا LibreOffice
-      // ولا المتصفح يعرضانه أصلاً ليُقاس منه، فكانت صورة تقرير Word الفعلي هي المرجع).
-      const LOGO_OVERLAY_RECT_PT = { x: 244.8, y: 16.75, w: 129.8, h: 114.6 };
-      const STAMP_OVERLAY = {
-        centerX: 99.2,
-        centerY: 627.8,
-        unrotatedW: 108.6,
-        unrotatedH: 90.55,
+      // مواضع/مقاسات معبَّر عنها كنسب مئوية من أبعاد الصفحة نفسها (وليس بوحدات ثابتة)،
+      // محسوبة من إحداثيات wp:anchor الفعلية في القالب على صفحة A4 (595.3 × 841.9pt).
+      // استخدام النسب يجعلها صحيحة مهما كان المقاس الفعلي الذي يعرض به docx-preview
+      // الصفحة في المتصفح (وهو ما يختلف من جهاز لآخر).
+      const LOGO_PCT = { left: 41.12, top: 1.99, width: 21.8, height: 13.61 };
+      const STAMP_PCT = {
+        centerLeft: 16.66,
+        centerTop: 74.57,
+        width: 18.24,
+        height: 10.76,
         rotationDeg: 31.77,
       };
 
-      function drawRectOverlayOnPageCanvas(pageCanvas, img, rectPt, pageWidthPt) {
-        const pxPerPt = pageCanvas.width / pageWidthPt;
-        const ctx = pageCanvas.getContext("2d");
-        ctx.drawImage(
-          img,
-          rectPt.x * pxPerPt,
-          rectPt.y * pxPerPt,
-          rectPt.w * pxPerPt,
-          rectPt.h * pxPerPt,
-        );
-      }
+      // يحقن الشعار والختم كعناصر <img> حقيقية داخل صفحة المستند المعروضة، قبل التقاطها
+      // بواسطة html2canvas — فيلتقطهما مثل أي صورة عادية في الصفحة، دون الحاجة لأي
+      // معالجة لاحقة على الـ canvas.
+      function injectLetterheadImagesIntoPage(pageEl, logoSrc, stampSrc, isLastPage) {
+        const cs = window.getComputedStyle(pageEl);
+        if (cs.position === "static") {
+          pageEl.style.position = "relative";
+        }
 
-      function drawRotatedStampOnPageCanvas(pageCanvas, stampImg, pageWidthPt) {
-        const pxPerPt = pageCanvas.width / pageWidthPt;
-        const ctx = pageCanvas.getContext("2d");
-        const cx = STAMP_OVERLAY.centerX * pxPerPt;
-        const cy = STAMP_OVERLAY.centerY * pxPerPt;
-        const w = STAMP_OVERLAY.unrotatedW * pxPerPt;
-        const h = STAMP_OVERLAY.unrotatedH * pxPerPt;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate((STAMP_OVERLAY.rotationDeg * Math.PI) / 180);
-        ctx.drawImage(stampImg, -w / 2, -h / 2, w, h);
-        ctx.restore();
+        const logo = document.createElement("img");
+        logo.src = logoSrc;
+        logo.setAttribute("data-qibla-overlay", "logo");
+        logo.style.position = "absolute";
+        logo.style.left = LOGO_PCT.left + "%";
+        logo.style.top = LOGO_PCT.top + "%";
+        logo.style.width = LOGO_PCT.width + "%";
+        logo.style.height = LOGO_PCT.height + "%";
+        logo.style.zIndex = "50";
+        logo.style.pointerEvents = "none";
+        pageEl.appendChild(logo);
+
+        if (!isLastPage) return;
+
+        const stamp = document.createElement("img");
+        stamp.src = stampSrc;
+        stamp.setAttribute("data-qibla-overlay", "stamp");
+        stamp.style.position = "absolute";
+        stamp.style.left = STAMP_PCT.centerLeft + "%";
+        stamp.style.top = STAMP_PCT.centerTop + "%";
+        stamp.style.width = STAMP_PCT.width + "%";
+        stamp.style.height = STAMP_PCT.height + "%";
+        stamp.style.transform =
+          "translate(-50%, -50%) rotate(" + STAMP_PCT.rotationDeg + "deg)";
+        stamp.style.zIndex = "50";
+        stamp.style.pointerEvents = "none";
+        pageEl.appendChild(stamp);
       }
 
       // يستبدل رمزي Wingdings 2 الخاصين (غير المدعومين في المتصفح) برمزي يونيكود
@@ -487,13 +463,26 @@
           replaceCheckboxGlyphsForPdf(hiddenContainer);
           isolateLtrFieldValuesForPdf(hiddenContainer, fieldsForPdfFixups);
 
-          // تحميل الشعار والختم (صور ثابتة عائمة يعجز docx-preview عن عرضها) مسبقاً
-          const [logoImg, stampImg] = await Promise.all([
-            getQiblaLogoImage(),
-            getQiblaStampImage(),
-          ]);
+          status.textContent = "جاري تحويل صفحات المستند إلى PDF...";
 
-          // انتظار اكتمال رسم الصور والخطوط داخل المستند المعروض قبل الالتقاط
+          const wrapperEl = hiddenContainer.querySelector(".docx-wrapper");
+          const pageEls = wrapperEl
+            ? Array.from(wrapperEl.children).filter((el) => el.classList.contains("docx"))
+            : [];
+          const pagesToRender = pageEls.length ? pageEls : [hiddenContainer];
+
+          // حقن الشعار (في كل صفحة) والختم (في الصفحة الأخيرة فقط) كعناصر صور حقيقية
+          // داخل الصفحات قبل التقاطها، ليلتقطها html2canvas تلقائياً
+          pagesToRender.forEach((pageEl, idx) => {
+            injectLetterheadImagesIntoPage(
+              pageEl,
+              "assets/qibla-logo.png",
+              "assets/qibla-stamp.png",
+              idx === pagesToRender.length - 1,
+            );
+          });
+
+          // انتظار اكتمال تحميل كل الصور (بما فيها الشعار والختم المحقونان للتو)
           await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
           const pendingImages = Array.from(hiddenContainer.querySelectorAll("img")).filter(
             (img) => !img.complete,
@@ -510,14 +499,6 @@
             );
           }
 
-          status.textContent = "جاري تحويل صفحات المستند إلى PDF...";
-
-          const wrapperEl = hiddenContainer.querySelector(".docx-wrapper");
-          const pageEls = wrapperEl
-            ? Array.from(wrapperEl.children).filter((el) => el.classList.contains("docx"))
-            : [];
-          const pagesToRender = pageEls.length ? pageEls : [hiddenContainer];
-
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF({ unit: "pt", format: "a4" });
           const pageWidthPt = pdf.internal.pageSize.getWidth();
@@ -529,13 +510,6 @@
               backgroundColor: "#ffffff",
               scale: 2,
             });
-
-            // الشعار عنصر ترويسة يتكرر في كل صفحة (تماماً كرأس الصفحة في Word)
-            drawRectOverlayOnPageCanvas(pageCanvas, logoImg, LOGO_OVERLAY_RECT_PT, pageWidthPt);
-            // الختم يظهر مرة واحدة فقط قرب نهاية المستند (آخر صفحة)
-            if (i === pagesToRender.length - 1) {
-              drawRotatedStampOnPageCanvas(pageCanvas, stampImg, pageWidthPt);
-            }
 
             const imgData = pageCanvas.toDataURL("image/png");
             if (i > 0) pdf.addPage();
