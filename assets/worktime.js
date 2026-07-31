@@ -477,75 +477,6 @@
       .forEach((cb) => (cb.checked = false));
   }
 
-  // ---------- رفع الكروكيات واستخراج المواقع ----------
-
-  function logKroki(html, tone) {
-    const box = el("krokiLog");
-    box.classList.remove("hidden");
-    const row = document.createElement("div");
-    row.className = "kroki-row" + (tone ? " is-" + tone : "");
-    row.innerHTML = html;
-    box.appendChild(row);
-  }
-
-  function appendMosqueLine(name, easting, northing) {
-    const ta = el("mosquesInput");
-    const line = name + ", " + easting.toFixed(2) + ", " + northing.toFixed(2);
-    ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
-  }
-
-  async function handleKrokiFiles(fileList) {
-    const files = Array.from(fileList).filter((f) => f && f.type.indexOf("image/") === 0);
-    if (!files.length) return;
-
-    const method = el("ocrMethod").value;
-    const apiKey = el("anthropicKey").value.trim();
-
-    if (method === "ai" && !apiKey) {
-      showError("أدخل مفتاح Anthropic API، أو اختر القراءة العادية.");
-      return;
-    }
-
-    clearError();
-    el("krokiLog").classList.remove("hidden");
-
-    for (const file of files) {
-      const pending = document.createElement("div");
-      pending.className = "kroki-row is-pending";
-      pending.textContent = "جاري قراءة " + file.name + "…";
-      el("krokiLog").appendChild(pending);
-
-      try {
-        const result = await window.KrokiReader.readKroki(file, { method, apiKey });
-
-        // مزامنة نطاق UTM ونظام الإسناد إن تعرّف عليهما القارئ
-        if (result.zone && result.zone >= 1 && result.zone <= 60) {
-          el("zone").value = String(result.zone);
-        }
-        if (result.datum === "psd93" || result.datum === "wgs84utm") {
-          el("datum").value = result.datum;
-        }
-
-        appendMosqueLine(result.name, result.easting, result.northing);
-
-        const how =
-          result.source === "centroid"
-            ? "مركز القطعة المذكور بالكروكي"
-            : "مركز " + result.pointCount + " نقطة";
-        pending.className = "kroki-row is-ok";
-        pending.innerHTML =
-          "✓ <b>" + escapeHtml(result.name) + "</b> — " + how;
-      } catch (err) {
-        pending.className = "kroki-row is-fail";
-        pending.innerHTML =
-          "✕ <b>" +
-          escapeHtml(file.name) +
-          "</b> — " +
-          escapeHtml(err && err.message ? err.message : "تعذّرت القراءة");
-      }
-    }
-  }
-
   // ---------- التشغيل ----------
 
   async function compute() {
@@ -628,37 +559,6 @@
     if (!confirm("سيتم مسح كل المساجد المحفوظة. هل تريد المتابعة؟")) return;
     window.MosqueStore.clearAll();
     renderSavedMosques();
-  });
-
-  // إظهار حقل المفتاح فقط عند اختيار القراءة عالية الدقة
-  el("ocrMethod").addEventListener("change", function () {
-    el("aiKeyWrap").classList.toggle("hidden", this.value !== "ai");
-  });
-
-  el("krokiInput").addEventListener("change", function (e) {
-    if (e.target.files && e.target.files.length) {
-      handleKrokiFiles(e.target.files);
-    }
-    e.target.value = "";
-  });
-
-  const dropzone = el("krokiDropzone");
-  ["dragover", "dragenter"].forEach((ev) =>
-    dropzone.addEventListener(ev, (e) => {
-      e.preventDefault();
-      dropzone.classList.add("drag");
-    }),
-  );
-  ["dragleave", "drop"].forEach((ev) =>
-    dropzone.addEventListener(ev, (e) => {
-      e.preventDefault();
-      dropzone.classList.remove("drag");
-    }),
-  );
-  dropzone.addEventListener("drop", (e) => {
-    if (e.dataTransfer && e.dataTransfer.files.length) {
-      handleKrokiFiles(e.dataTransfer.files);
-    }
   });
 
   el("openMapsBtn").addEventListener("click", function () {

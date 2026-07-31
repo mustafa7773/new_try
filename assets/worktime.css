@@ -130,43 +130,6 @@
   display: none;
 }
 
-/* سجل قراءة الكروكيات */
-.kroki-log {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.kroki-row {
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--card-border);
-  background: rgba(20, 32, 54, 0.5);
-  font-size: 0.92rem;
-  color: var(--muted);
-}
-
-.kroki-row b {
-  color: var(--paper);
-  font-weight: 600;
-}
-
-.kroki-row.is-pending {
-  border-color: var(--card-border);
-  opacity: 0.75;
-}
-
-.kroki-row.is-ok {
-  border-color: rgba(46, 204, 113, 0.45);
-  color: var(--paper);
-}
-
-.kroki-row.is-fail {
-  border-color: rgba(244, 91, 91, 0.45);
-  color: #ffb4b4;
-}
-
 /* ===== المساجد المحفوظة من أداة القبلة ===== */
 .saved-block {
   margin-bottom: 20px;
