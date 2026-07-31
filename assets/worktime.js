@@ -475,22 +475,93 @@
       .map((m) => {
         const segments = String(m.name).split(" — ");
         const title = segments[0];
-        const subtitle = m.governorate || segments.slice(1).join(" · ");
+
+        // بقية أجزاء الاسم (الولاية والتاريخ) تُعرض كسطر فرعي،
+        // مع تفادي تكرار أي جزء يطابق العنوان نفسه
+        const subParts = segments
+          .slice(1)
+          .filter((seg) => seg && seg !== title);
+        if (!subParts.length && m.governorate && m.governorate !== title) {
+          subParts.push(m.governorate);
+        }
+        const dateStr = window.MosqueStore.formatShortDate(m.savedAt);
+        if (dateStr && subParts.indexOf(dateStr) === -1) subParts.push(dateStr);
+
+        const hasGov = !!(m.governorate || segments.length > 2);
+        if (!hasGov) subParts.push("بلا ولاية — اضغط ✎");
+        const subtitle = subParts.join(" · ");
+
         return (
-          '<label class="saved-item"><input type="checkbox" value="' +
+          '<div class="saved-item" data-id="' +
+          m.id +
+          '"><label class="saved-pick"><input type="checkbox" value="' +
           m.id +
           '" /><span class="saved-text"><span class="saved-name">' +
           escapeHtml(title) +
-          "</span>" +
-          (subtitle ? '<span class="saved-sub">' + escapeHtml(subtitle) + "</span>" : "") +
-          '</span><span class="saved-coords">' +
+          '</span><span class="saved-sub' +
+          (hasGov ? "" : " is-missing") +
+          '">' +
+          escapeHtml(subtitle) +
+          '</span></span></label><span class="saved-coords">' +
           m.easting.toFixed(0) +
           " · " +
           m.northing.toFixed(0) +
-          "</span></label>"
+          '</span><button type="button" class="icon-btn" data-edit="' +
+          m.id +
+          '" title="تعديل الاسم والولاية">✎</button>' +
+          '<button type="button" class="icon-btn danger" data-delete="' +
+          m.id +
+          '" title="حذف هذا المسجد">🗑</button></div>'
         );
       })
       .join("");
+  }
+
+  // تحويل صف المسجد إلى وضع التحرير لتعديل الاسم والولاية
+  function startEditSaved(id) {
+    const store = window.MosqueStore;
+    if (!store) return;
+
+    const item = store.loadAll().find((m) => m.id === id);
+    if (!item) return;
+
+    const row = el("savedList").querySelector('[data-id="' + id + '"]');
+    if (!row) return;
+
+    const segments = String(item.name).split(" — ");
+    const dateStr = window.MosqueStore.formatShortDate(item.savedAt);
+    // نستبعد الولاية والتاريخ من خانة الاسم لأن لكل منهما مكانه الخاص
+    const baseName =
+      segments.filter(
+        (seg) => seg && seg !== item.governorate && seg !== dateStr,
+      )[0] || "";
+
+    row.classList.add("is-editing");
+    row.innerHTML =
+      '<div class="saved-edit">' +
+      '<input type="text" class="edit-name" placeholder="اسم المسجد أو رقم الطلب" value="' +
+      escapeHtml(baseName) +
+      '" />' +
+      '<input type="text" class="edit-gov" placeholder="المحافظة والولاية" value="' +
+      escapeHtml(item.governorate || "") +
+      '" />' +
+      '<div class="edit-actions">' +
+      '<button type="button" class="primary subtle edit-save">حفظ</button>' +
+      '<button type="button" class="link-btn edit-cancel">إلغاء</button>' +
+      "</div></div>";
+
+    row.querySelector(".edit-save").addEventListener("click", () => {
+      const name = row.querySelector(".edit-name").value.trim();
+      const gov = row.querySelector(".edit-gov").value.trim();
+      // الاسم الكامل = الاسم — الولاية — التاريخ (ليظهر صحيحاً في خطة اليوم أيضاً)
+      const fullName =
+        [name, gov, dateStr].filter(Boolean).join(" — ") || item.name;
+      store.updateMeta(id, { name: fullName, governorate: gov });
+      renderSavedMosques();
+    });
+
+    row.querySelector(".edit-cancel").addEventListener("click", renderSavedMosques);
+    row.querySelector(".edit-name").focus();
   }
 
   function addSelectedSaved() {
@@ -603,6 +674,29 @@
   renderSavedMosques();
 
   el("addSelectedBtn").addEventListener("click", addSelectedSaved);
+
+  // أزرار التعديل (✎) والحذف (🗑) داخل كل صف
+  el("savedList").addEventListener("click", function (e) {
+    const editBtn = e.target.closest("[data-edit]");
+    if (editBtn) {
+      e.preventDefault();
+      startEditSaved(editBtn.getAttribute("data-edit"));
+      return;
+    }
+
+    const delBtn = e.target.closest("[data-delete]");
+    if (delBtn) {
+      e.preventDefault();
+      const id = delBtn.getAttribute("data-delete");
+      const store = window.MosqueStore;
+      if (!store) return;
+      const item = store.loadAll().find((m) => m.id === id);
+      const label = item ? String(item.name).split(" — ")[0] : "هذا المسجد";
+      if (!confirm("حذف «" + label + "» من القائمة؟")) return;
+      store.removeById(id);
+      renderSavedMosques();
+    }
+  });
 
   el("selectAllSaved").addEventListener("click", function () {
     const boxes = el("savedList").querySelectorAll('input[type="checkbox"]');

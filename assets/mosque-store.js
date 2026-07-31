@@ -74,11 +74,38 @@
     return list;
   }
 
+  // تعديل اسم المسجد أو ولايته بعد حفظه (مفيد للسجلات القديمة التي حُفظت
+  // قبل إدخال بيانات المسجد، أو عند الرغبة بتسمية أوضح)
+  function updateMeta(id, meta) {
+    const list = loadAll();
+    const item = list.find((m) => m.id === id);
+    if (!item) return null;
+
+    if (typeof meta.name === "string") {
+      item.name = meta.name.trim() || item.name;
+    }
+    if (typeof meta.governorate === "string") {
+      item.governorate = meta.governorate.trim() || null;
+    }
+    persist(list);
+    return item;
+  }
+
   function clearAll() {
     persist([]);
   }
 
-  window.MosqueStore = { loadAll, upsert, removeById, clearAll };
+  function formatShortDate(value) {
+    const d = value ? new Date(value) : new Date();
+    if (isNaN(d.getTime())) return "";
+    return (
+      String(d.getDate()).padStart(2, "0") + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      d.getFullYear()
+    );
+  }
+
+  window.MosqueStore = { loadAll, upsert, updateMeta, removeById, clearAll, formatShortDate };
 
   // ==========================================================================
   // جانب أداة القبلة: الحفظ التلقائي بعد كل عملية حساب ناجحة
@@ -111,18 +138,12 @@
     const requestNo = readValue("mosqueRequestNo");
     const village = readValue("villagePlotInput");
     const governorate = readValue("governorateInput");
+    const dateStr = formatShortDate();
 
-    // الاسم يجمع رقم الطلب والقرية والولاية (كل ما هو متوفر منها)
+    // الاسم يجمع رقم الطلب والقرية والولاية، والتاريخ دائماً في آخره
     const parts = [requestNo, village, governorate].filter(Boolean);
-    if (parts.length) return parts.join(" — ");
-
-    const d = new Date();
-    return (
-      "مسجد " +
-      d.getFullYear() + "-" +
-      String(d.getMonth() + 1).padStart(2, "0") + "-" +
-      String(d.getDate()).padStart(2, "0")
-    );
+    if (parts.length) return parts.join(" — ") + " — " + dateStr;
+    return "مسجد " + dateStr;
   }
 
   function saveCurrentMosque() {
