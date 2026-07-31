@@ -1,0 +1,93 @@
+/* ===== أنماط خاصة بصفحة اختيار الأدوات (Sky Innovations Tools) ===== */
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 8px 0 60px;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 30px 26px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.tool-card:hover,
+.tool-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--gold);
+  box-shadow: 0 26px 50px rgba(0, 0, 0, 0.5);
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: rgba(223, 182, 104, 0.06);
+  filter: drop-shadow(0 0 14px var(--gold-glow));
+}
+
+.tool-card h2 {
+  margin: 6px 0 0;
+  font-size: 1.32rem;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+.tool-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.97rem;
+  line-height: 1.85;
+}
+
+.tool-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.tool-card:hover .tool-go svg,
+.tool-card:focus-visible .tool-go svg {
+  transform: translateX(-4px);
+}
+
+.tool-go svg {
+  transition: transform 0.25s ease;
+}
+
+/* رابط الرجوع إلى قائمة الأدوات داخل صفحات الأدوات نفسها */
+.back-to-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  transition: color 0.2s ease;
+}
+
+.back-to-tools:hover,
+.back-to-tools:focus-visible {
+  color: var(--gold);
+}

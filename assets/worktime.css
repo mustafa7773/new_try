@@ -1,0 +1,131 @@
+/* ===== أنماط خاصة بأداة حساب وقت العمل ===== */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.summary-card {
+  padding: 18px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: rgba(223, 182, 104, 0.05);
+  text-align: center;
+}
+
+.summary-card .label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-bottom: 6px;
+}
+
+.summary-card .value {
+  display: block;
+  color: var(--gold-light);
+  font-size: 1.42rem;
+  font-weight: 600;
+  font-family: "IBM Plex Mono", monospace;
+  line-height: 1.4;
+}
+
+/* الخط الزمني لمحطات اليوم */
+.timeline {
+  position: relative;
+  margin: 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
+.stop {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 0 0 22px 0;
+}
+
+.stop:last-child {
+  padding-bottom: 0;
+}
+
+.stop-rail {
+  position: relative;
+  flex: 0 0 34px;
+  display: flex;
+  justify-content: center;
+}
+
+.stop-dot {
+  position: relative;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--gold);
+}
+
+.stop.is-base .stop-dot {
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
+.stop:not(:last-child) .stop-rail::after {
+  content: "";
+  position: absolute;
+  top: 34px;
+  bottom: -22px;
+  width: 1px;
+  background: var(--card-border);
+}
+
+.stop-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.stop-name {
+  margin: 0 0 3px;
+  font-size: 1.03rem;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+.stop-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.stop-meta .clock {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--gold);
+}
+
+.leg-note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.worktime-map {
+  height: 420px;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+  overflow: hidden;
+}
+
+.hidden {
+  display: none;
+}
