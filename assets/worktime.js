@@ -43,13 +43,35 @@
     box.style.display = "none";
   }
 
+  // صياغة عربية صحيحة للمفرد والمثنى والجمع
+  function arabicUnit(count, single, dual, plural, many) {
+    if (count === 1) return single;
+    if (count === 2) return dual;
+    if (count >= 3 && count <= 10) return count + " " + plural;
+    return count + " " + many;
+  }
+
   function formatDuration(totalMinutes) {
     const mins = Math.round(totalMinutes);
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    if (h === 0) return m + " دقيقة";
-    if (m === 0) return h + " ساعة";
-    return h + " ساعة و" + m + " دقيقة";
+
+    const hourText = arabicUnit(h, "ساعة واحدة", "ساعتان", "ساعات", "ساعة");
+    const minText = arabicUnit(m, "دقيقة واحدة", "دقيقتان", "دقائق", "دقيقة");
+
+    if (h === 0) return minText;
+    if (m === 0) return hourText;
+    return hourText + " و" + minText;
+  }
+
+  // صيغة مختصرة للبطاقات كي لا يلتف النص على عدة أسطر
+  function formatDurationShort(totalMinutes) {
+    const mins = Math.round(totalMinutes);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return m + " د";
+    if (m === 0) return h + " س";
+    return h + " س " + m + " د";
   }
 
   function formatClock(dateObj) {
@@ -234,8 +256,10 @@
       schedule.push({
         name: route.ordered[i].name,
         isBase: false,
+        order: i,
         arrival,
         departure,
+        workMinutes: stopMinutes,
         legMinutes: leg.minutes,
         legKm: leg.km,
         label: "مسجد",
@@ -273,71 +297,100 @@
   // ---------- عرض النتيجة ----------
 
   function renderSummary(result) {
+    // جملة تلخيصية واضحة أعلى البطاقات
+    const endTime = result.schedule[result.schedule.length - 1].arrival;
+    el("summaryHeadline").innerHTML =
+      "تبدأ ٨:٠٠ صباحاً وتزور <b>" +
+      arabicUnit(result.mosqueCount, "مسجداً واحداً", "مسجدين", "مساجد", "مسجداً") +
+      "</b>، وتعود إلى الخوض السابعة الساعة <b>" +
+      formatClock(endTime) +
+      "</b> — أي <b>" +
+      formatDuration(result.totalMinutes) +
+      "</b> من وقت العمل.";
+
     el("summaryGrid").innerHTML = [
-      card("عدد المساجد", result.mosqueCount),
-      card("زمن التنقل", formatDuration(result.drivingMinutes)),
-      card("وقت العمل بالمواقع", formatDuration(result.workMinutes)),
-      card("إجمالي اليوم", formatDuration(result.totalMinutes)),
-      card("مسافة المسار", result.totalKm.toFixed(1) + " كم"),
+      card("عدد المساجد", String(result.mosqueCount), "في المسار"),
+      card("زمن التنقل", formatDurationShort(result.drivingMinutes), "في الطريق"),
+      card("العمل بالمواقع", formatDurationShort(result.workMinutes), "داخل المساجد"),
+      card("إجمالي اليوم", formatDurationShort(result.totalMinutes), "من الخروج للعودة"),
+      card("مسافة المسار", result.totalKm.toFixed(0) + " كم", "ذهاباً وإياباً"),
     ].join("");
 
-    function card(label, value) {
+    function card(label, value, note) {
       return (
         '<div class="summary-card"><span class="label">' +
         label +
         '</span><span class="value">' +
         value +
-        "</span></div>"
+        "</span>" +
+        (note ? '<span class="note">' + note + "</span>" : "") +
+        "</div>"
       );
     }
   }
 
   function renderTimeline(result) {
-    const html = result.schedule
-      .map((stop, i) => {
-        const isBase = stop.isBase;
-        const dotLabel = isBase ? "⌂" : String(i);
+    const rows = [];
 
-        let meta = "";
-        if (stop.arrival && stop.departure) {
-          meta =
-            'الوصول <span class="clock">' +
-            formatClock(stop.arrival) +
-            '</span> · المغادرة <span class="clock">' +
-            formatClock(stop.departure) +
-            "</span>";
-        } else if (stop.arrival) {
-          meta = 'الوصول <span class="clock">' + formatClock(stop.arrival) + "</span>";
-        } else if (stop.departure) {
-          meta = 'المغادرة <span class="clock">' + formatClock(stop.departure) + "</span>";
-        }
+    result.schedule.forEach((stop, i) => {
+      // ساق التنقل تُعرض بين المحطتين لتكون العلاقة واضحة
+      if (stop.legMinutes != null) {
+        rows.push(
+          '<li class="leg"><span class="leg-icon">🚗</span>' +
+            '<span class="leg-text">تنقّل ' +
+            formatDuration(stop.legMinutes) +
+            " · " +
+            stop.legKm.toFixed(1) +
+            " كم</span></li>",
+        );
+      }
 
-        const legNote =
-          stop.legMinutes != null
-            ? '<p class="leg-note">تنقّل ' +
-              formatDuration(stop.legMinutes) +
-              " · " +
-              stop.legKm.toFixed(1) +
-              " كم</p>"
-            : "";
+      const isBase = stop.isBase;
+      const dotLabel = isBase ? "⌂" : String(stop.order);
 
-        return (
-          '<li class="stop' +
+      // الاسم قد يجمع رقم الطلب والقرية والولاية مفصولة بـ " — "،
+      // نعرض الجزء الأول كعنوان والباقي كسطر فرعي أوضح للقراءة
+      const segments = String(stop.name).split(" — ");
+      const title = segments[0];
+      const subtitle = segments.slice(1).join(" · ");
+
+      let tag = "";
+      let meta = "";
+
+      if (stop.label === "الانطلاق") {
+        tag = '<span class="stop-tag">الانطلاق</span>';
+        meta = 'تخرج الساعة <span class="clock">' + formatClock(stop.departure) + "</span>";
+      } else if (stop.label === "العودة") {
+        tag = '<span class="stop-tag">نهاية اليوم</span>';
+        meta = 'تصل الساعة <span class="clock">' + formatClock(stop.arrival) + "</span>";
+      } else {
+        meta =
+          'وصول <span class="clock">' +
+          formatClock(stop.arrival) +
+          '</span> ← عمل ' +
+          formatDuration(stop.workMinutes) +
+          ' ← مغادرة <span class="clock">' +
+          formatClock(stop.departure) +
+          "</span>";
+      }
+
+      rows.push(
+        '<li class="stop' +
           (isBase ? " is-base" : "") +
           '"><div class="stop-rail"><span class="stop-dot">' +
           dotLabel +
           '</span></div><div class="stop-body"><p class="stop-name">' +
-          escapeHtml(stop.name) +
-          '</p><p class="stop-meta">' +
-          meta +
+          escapeHtml(title) +
+          tag +
           "</p>" +
-          legNote +
-          "</div></li>"
-        );
-      })
-      .join("");
+          (subtitle ? '<p class="stop-sub">' + escapeHtml(subtitle) + "</p>" : "") +
+          '<p class="stop-meta">' +
+          meta +
+          "</p></div></li>",
+      );
+    });
 
-    el("timeline").innerHTML = '<ul class="timeline">' + html + "</ul>";
+    el("timeline").innerHTML = '<ul class="timeline-list">' + rows.join("") + "</ul>";
   }
 
   function escapeHtml(str) {
@@ -420,17 +473,20 @@
 
     list.innerHTML = saved
       .map((m) => {
-        const when = m.savedAt ? new Date(m.savedAt).toLocaleDateString("ar-OM") : "";
+        const segments = String(m.name).split(" — ");
+        const title = segments[0];
+        const subtitle = m.governorate || segments.slice(1).join(" · ");
         return (
           '<label class="saved-item"><input type="checkbox" value="' +
           m.id +
-          '" /><span class="saved-name">' +
-          escapeHtml(m.name) +
+          '" /><span class="saved-text"><span class="saved-name">' +
+          escapeHtml(title) +
+          "</span>" +
+          (subtitle ? '<span class="saved-sub">' + escapeHtml(subtitle) + "</span>" : "") +
           '</span><span class="saved-coords">' +
-          m.easting.toFixed(2) +
+          m.easting.toFixed(0) +
           " · " +
-          m.northing.toFixed(2) +
-          (when ? " · " + when : "") +
+          m.northing.toFixed(0) +
           "</span></label>"
         );
       })

@@ -47,6 +47,9 @@
     const record = {
       id: existingIndex >= 0 ? list[existingIndex].id : "m_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
       name: entry.name || "مسجد بدون اسم",
+      governorate: entry.governorate || null,
+      village: entry.village || null,
+      requestNo: entry.requestNo || null,
       easting: entry.easting,
       northing: entry.northing,
       datum: entry.datum || null,
@@ -109,11 +112,9 @@
     const village = readValue("villagePlotInput");
     const governorate = readValue("governorateInput");
 
-    if (requestNo && village) return requestNo + " — " + village;
-    if (requestNo) return requestNo;
-    if (village && governorate) return village + " — " + governorate;
-    if (village) return village;
-    if (governorate) return governorate;
+    // الاسم يجمع رقم الطلب والقرية والولاية (كل ما هو متوفر منها)
+    const parts = [requestNo, village, governorate].filter(Boolean);
+    if (parts.length) return parts.join(" — ");
 
     const d = new Date();
     return (
@@ -149,6 +150,9 @@
 
     return upsert({
       name: buildMosqueName(),
+      governorate: readValue("governorateInput"),
+      village: readValue("villagePlotInput"),
+      requestNo: readValue("mosqueRequestNo"),
       easting: coords.easting,
       northing: coords.northing,
       datum,
@@ -183,8 +187,16 @@
     computeBtn.addEventListener("click", scheduleSaveAfterCompute);
   }
 
-  // نحفظ/نحدّث الاسم أيضاً عند تنزيل تقرير Word، لأن بيانات المسجد
-  // (رقم الطلب، القرية) تُدخَل عادةً بعد الحساب لا قبله
+  // نحدّث السجل فور تعبئة/تعديل أي من بيانات المسجد (رقم الطلب، القرية، الولاية)
+  // حتى يُحفظ الاسم كاملاً دون انتظار تنزيل تقرير Word
+  ["mosqueRequestNo", "villagePlotInput", "governorateInput"].forEach((id) => {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.addEventListener("change", saveCurrentMosque);
+    node.addEventListener("blur", saveCurrentMosque);
+  });
+
+  // نحفظ/نحدّث أيضاً عند تنزيل تقرير Word
   const wordBtn = document.getElementById("downloadWordBtn");
   if (wordBtn) {
     wordBtn.addEventListener("click", () => setTimeout(saveCurrentMosque, 300));
