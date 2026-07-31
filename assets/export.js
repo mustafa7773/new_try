@@ -49,15 +49,23 @@
         return new Promise((resolve, reject) => {
           const img = new Image();
           img.onload = () => resolve(img);
-          img.onerror = () => reject(new Error("تعذّر تحميل الصورة: " + url));
+          img.onerror = () => {
+            console.error("[qibla-pdf] تعذّر تحميل صورة الترويسة الثابتة:", url);
+            reject(new Error("تعذّر تحميل الصورة: " + url));
+          };
           img.src = url;
         });
       }
 
+      // ملاحظة: لا نُخزِّن (نُخبِّئ) نتيجة فاشلة بشكل دائم — إن فشل التحميل مرة نعيد
+      // المحاولة في الطلب التالي بدل تكرار نفس الفشل إلى الأبد داخل نفس الجلسة
       let cachedLogoImagePromise = null;
       function getQiblaLogoImage() {
         if (!cachedLogoImagePromise) {
-          cachedLogoImagePromise = loadImageAsset("assets/qibla-logo.png");
+          cachedLogoImagePromise = loadImageAsset("assets/qibla-logo.png").catch((err) => {
+            cachedLogoImagePromise = null;
+            throw err;
+          });
         }
         return cachedLogoImagePromise;
       }
@@ -65,7 +73,10 @@
       let cachedStampImagePromise = null;
       function getQiblaStampImage() {
         if (!cachedStampImagePromise) {
-          cachedStampImagePromise = loadImageAsset("assets/qibla-stamp.png");
+          cachedStampImagePromise = loadImageAsset("assets/qibla-stamp.png").catch((err) => {
+            cachedStampImagePromise = null;
+            throw err;
+          });
         }
         return cachedStampImagePromise;
       }
